@@ -111,6 +111,7 @@ import ReactDOM from 'react-dom';
 import {Router, Route, IndexRoute, hashHistory, IndexRedirect} from 'react-router';
 
 import Dashboard from './components/dashboard.components.jsx';
+import TestFont from './components/test-font.components.jsx';
 import Signin from './components/signin.components.jsx';
 import ForgottenPassword from './components/forgotten-password.components.jsx';
 import NotABrowser from './components/not-a-browser.components.jsx';
@@ -381,7 +382,7 @@ selectRenderOptions(
 			ReactDOM.render((
 				<Router history={hashHistory} onUpdate={trackUrl}>
 					<Route component={App} name="app" path="/">
-						<Route path="dashboard" component={Dashboard} onEnter={redirectToLogin}/>
+						<Route path="dashboard" component={TestFont} onEnter={redirectToLogin}/>
 						/* #if debug */
 						<Route path="replay" path="replay/:replayId" component={ReplayViewer}/>
 						<Route path="debug" component={ReplayViewer}/>
@@ -423,6 +424,7 @@ selectRenderOptions(
 								<Route path="Confirmation" component={SubscriptionConfirmation} onEnter={chooseGoodAccountStep}/>
 							</Route>
 						</Route>
+						<Route path="test-font" component={TestFont}/>
 					</Route>
 				</Router>
 			), content);
