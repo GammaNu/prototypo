@@ -2,7 +2,6 @@ import React from 'react';
 import classNames from 'classnames';
 import Lifespan from 'lifespan';
 import PureRenderMixin from 'react-addons-pure-render-mixin';
-import PrototypoCanvasContainer from 'prototypo-canvas';
 
 import LocalClient from '../stores/local-client.stores.jsx';
 import Log from '../services/log.services.js';
@@ -401,7 +400,7 @@ export default class PrototypoCanvas extends React.Component {
 					disabled={!this.isManualEdited()}>
 					Reset glyph
 				</button>
-				<PrototypoCanvasContainer
+				{/*<PrototypoCanvasContainer
 					familyName={this.state.familyName}
 					json={this.state.typedataJSON}
 					db={this.state.db}
@@ -440,7 +439,7 @@ export default class PrototypoCanvas extends React.Component {
 					preLoad={this.startLoad}
 					afterLoad={this.endLoad}
 					altList={this.state.altList}
-				/>
+				/>*/}
 				<div className={actionBarClassNames}>
 					<CloseButton click={() => { this.props.close('glyph'); }}/>
 				</div>

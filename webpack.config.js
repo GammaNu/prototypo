@@ -19,6 +19,12 @@ module.exports = {
 			'babel-polyfill',
 			'./app/scripts/web-import.js',
 		],
+		'worker': [
+			'webpack-dev-server/client?http://0.0.0.0:9000', // WebpackDevServer host and port
+			'webpack/hot/only-dev-server', // "only" prevents reload on syntax errors
+			'babel-polyfill',
+			'./app/scripts/worker/worker.js',
+		],
 	},
 	output: {
 		path: path.join(__dirname, 'dist'),
@@ -66,11 +72,6 @@ module.exports = {
 		],
 		noParse: /(dist\/prototypo-canvas)/,
 	},
-	externals: [{
-		'./node/window': true,
-		'./node/extend': true,
-		'prototypo.js': 'prototypo',
-	}],
 	plugins: [
 		new webpack.DefinePlugin({
 			//'process.env.__SHOW_RENDER__': "true",
