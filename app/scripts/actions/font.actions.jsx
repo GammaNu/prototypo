@@ -1,7 +1,8 @@
+/* global _, trackJs */
 import XXHash from 'xxhashjs';
 import slug from 'slug';
 
-import {prototypoStore, undoableStore} from '../stores/creation.stores.jsx';
+import {prototypoStore, undoableStore, fontInstanceStore} from '../stores/creation.stores.jsx';
 import LocalServer from '../stores/local-server.stores.jsx';
 import LocalClient from '../stores/local-client.stores.jsx';
 
@@ -11,8 +12,11 @@ import Log from '../services/log.services.js';
 import HoodieApi from '../services/hoodie.services.js';
 
 import {copyFontValues, loadFontValues, saveAppValues} from '../helpers/loadValues.helpers.js';
-import {setupFontInstance} from '../helpers/font.helpers.js';
 import {BatchUpdate} from '../helpers/undo-stack.helpers.js';
+
+import WorkerPool from '../worker/worker-pool.js';
+
+import {fontToSfntTable} from '../opentype/font.js';
 
 slug.defaults.mode = 'rfc3986';
 slug.defaults.modes.rfc3986.remove = /[-_\/\\\.]/g;
@@ -27,12 +31,15 @@ const debouncedSave = _.throttle((values, db) => {
 	});
 }, 300);
 
+
 function paramAuthorized(plan, credits) {
 	const paidPlan = plan.indexOf('free_') === -1;
 	const enoughCredits = credits && credits > 0;
 
 	return paidPlan || enoughCredits;
 }
+
+let oldFont;
 
 window.addEventListener('fluxServer.setup', () => {
 	localClient = LocalClient.instance();
@@ -70,7 +77,7 @@ export default {
 			typedata,
 		});
 
-		localClient.dispatchAction('/create-font', familyName);
+		localClient.dispatchAction('/create-font', typedata);
 		localClient.dispatchAction('/load-params', {controls, presets});
 		localClient.dispatchAction('/load-tags', tags);
 		loadFontValues(typedata, db);
@@ -79,6 +86,7 @@ export default {
 		try {
 			const template = appValues.values.familySelected ? appValues.values.familySelected.template : undefined;
 			const typedataJSON = await Typefaces.getFont(template || 'venus.ptf');
+
 			localClient.dispatchAction('/create-font-instance', {
 				typedataJSON,
 				appValues,
@@ -90,9 +98,23 @@ export default {
 		}
 
 	},
-	'/create-font': (familyName) => {
+	'/create-font': (typedata) => {
+		const fontWorkerPool = new WorkerPool();
+
+		fontWorkerPool.eachJob({
+			action: {
+				type: 'createFont',
+				data: typedata,
+			},
+			callback: () => {
+				localClient.dispatchAction('/store-value-font', {
+					fontWorkerPool,
+				});
+			},
+		});
+
 		const patch = prototypoStore
-			.set('fontName', familyName)
+			.set('fontName', typedata.fontinfo.familyName)
 			.commit();
 
 		localServer.dispatchUpdate('/prototypoStore', patch);
@@ -106,7 +128,7 @@ export default {
 			typedataJSON,
 		});
 
-		localClient.dispatchAction('/create-font', typedata.fontinfo.familyName);
+		localClient.dispatchAction('/create-font', typedata);
 
 		localClient.dispatchAction('/load-params', {controls: typedata.controls, presets: typedata.presets});
 		localClient.dispatchAction('/load-tags', typedata.fontinfo.tags);
@@ -206,11 +228,7 @@ export default {
 		);
 		Log.ui(`createFamily.${template}`);
 	},
-	'/select-variant': ({variant, family}) => {
-		if (!variant) {
-			variant = family.variants[0];
-		}
-
+	'/select-variant': ({family, variant = family.variants[0]}) => {
 		const patchVariant = prototypoStore
 			.set('variant', variant)
 			.set('family', {name: family.name, template: family.template}).commit();
@@ -419,12 +437,12 @@ export default {
 		});
 
 		if (family.name === currentFamily.name && family.template === currentFamily.template && variant.id === currentVariant.id) {
-			const variant = family.variants[0];
+			const defaultVariant = family.variants[0];
 
-			prototypoStore.set('variant', variant);
+			prototypoStore.set('variant', defaultVariant);
 			localClient.dispatchAction('/change-font', {
 				templateToLoad: family.template,
-				db: variant.db,
+				db: defaultVariant.db,
 			});
 		}
 
@@ -514,7 +532,7 @@ export default {
 						...newParams.indiv_group_param[currentGroupName],
 						[name]: {
 							...newParams.indiv_group_param[currentGroupName][name],
-							value: value,
+							value,
 						},
 					},
 				};
@@ -526,7 +544,7 @@ export default {
 						...newParams.indiv_group_param[currentGroupName],
 						[name]: {
 							state: 'relative',
-							value: value,
+							value,
 						},
 					},
 				};
@@ -792,4 +810,96 @@ export default {
 			});
 		}
 	},
+	'/update-font': (params) => {
+		const pool = fontInstanceStore.get('fontWorkerPool');
+		const subset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+		const jobs = [];
+
+		const fontPromise = _.chunk(subset.split(''), Math.ceil(subset.length / pool.workerArray.length))
+			.map((subsubset) => {
+				return new Promise((resolve) => {
+					jobs.push({
+						action: {
+							type: 'constructGlyphs',
+							data: {
+								params,
+								subset: subsubset,
+							},
+						},
+						callback: (font) => {
+							resolve(font);
+						},
+					});
+				});
+			});
+
+		pool.doJobs(jobs);
+
+		Promise.all(fontPromise).then((fonts) => {
+			let fontResult;
+
+			fonts.forEach(({font}) => {
+				if (fontResult) {
+					fontResult.glyphs = [
+						...fontResult.glyphs,
+						...font.glyphs,
+					];
+				}
+				else {
+					fontResult = font;
+				}
+			});
+
+			const arrayBuffer = fontToSfntTable({
+				...fontResult,
+				fontFamily: {en: 'Prototypo web font'},
+				fontSubfamily: {en: 'Regular'},
+				postScriptName: {},
+				unitsPerEm: 1024,
+			});
+
+			if (params.trigger) {
+				 triggerDownload(arrayBuffer.buffer, 'hello');
+			}
+
+			const fontFace = new FontFace(
+				'Prototypo web font',
+				arrayBuffer.buffer,
+			);
+
+			if (oldFont) {
+				document.fonts.delete(oldFont);
+			}
+
+			document.fonts.add(fontFace);
+			oldFont = fontFace;
+
+			localClient.dispatchAction('/font-store-value', {
+				font: fontResult,
+			});
+		});
+	},
+};
+
+var a = document.createElement('a');
+
+var triggerDownload = function(arrayBuffer, filename ) {
+	var reader = new FileReader();
+	var enFamilyName = filename;
+
+	reader.onloadend = function() {
+		a.download = enFamilyName + '.otf';
+		a.href = reader.result;
+		a.dispatchEvent(new MouseEvent('click'));
+
+		setTimeout(function() {
+			a.href = '#';
+			_URL.revokeObjectURL( reader.result );
+		}, 100);
+	};
+
+	reader.readAsDataURL(new Blob(
+		[ new DataView( arrayBuffer ) ],
+		{ type: 'font/opentype' }
+	));
 };

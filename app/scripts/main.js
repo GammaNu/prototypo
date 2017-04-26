@@ -4,6 +4,7 @@ import '../../node_modules/please-wait/build/please-wait.css';
 import '../../node_modules/react-select/dist/react-select.css';
 import '../../node_modules/react-joyride/lib/react-joyride-compiled.css';
 import '../../node_modules/draft-js/dist/Draft.css';
+import '../../node_modules/react-input-range/lib/css/index.css';
 import '../styles/components/edit-param-group.scss';
 import '../styles/components/input-group.scss';
 import '../styles/components/fonts-collection.scss';
@@ -231,7 +232,7 @@ selectRenderOptions(
 			logStore: stores['/prototypoStore'],
 		}).instance;
 		/* #end */
-		/* #if prod */
+		/* #if prod,dev */
 		const localServer = new LocalServer(stores).instance;
 		/* #end */
 
@@ -290,7 +291,7 @@ selectRenderOptions(
 				await eventDebugger.replayEventFromFile();
 			}
 			/* #end */
-			/* #if prod */
+			/* #if prod,dev */
 			try {
 				await HoodieApi.setup();
 

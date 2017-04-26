@@ -1,3 +1,4 @@
+/* eslint-disable */
 var path = require('path');
 var webpack = require('webpack');
 var fs = require('fs');
@@ -5,7 +6,7 @@ var fs = require('fs');
 module.exports = {
 	cache: true,
 	devtool: 'source-map',
-	'if-loader': 'prod',
+	'if-loader': 'dev',
 	entry: {
 		bundle: [
 			'webpack-dev-server/client?http://0.0.0.0:9000', // WebpackDevServer host and port
@@ -90,3 +91,4 @@ module.exports = {
 		fallback: path.join(__dirname, 'node_modules'),
 	},
 };
+/* eslint-enable */
