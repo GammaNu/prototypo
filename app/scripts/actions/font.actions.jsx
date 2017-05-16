@@ -821,7 +821,7 @@ export default {
 	},
 	'/update-font': (params) => {
 		const pool = fontInstanceStore.get('fontWorkerPool');
-		const subset = 'acdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+		const subset = 'Thequickfoxjmpvrtlazydg';
 		const glyph = ['b'];
 		const jobs = [];
 
@@ -840,7 +840,7 @@ export default {
 			},
 		});
 
-		const fontPromise = _.chunk(subset.split(''), Math.ceil(subset.length / pool.workerArray.length))
+		const fontPromise = _.chunk(_.uniq(subset.split('')), Math.ceil(subset.length / pool.workerArray.length))
 			.map((subsubset) => {
 				return new Promise((resolve) => {
 					jobs.push({
