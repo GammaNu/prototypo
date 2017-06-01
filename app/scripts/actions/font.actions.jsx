@@ -803,8 +803,10 @@ export default {
 	},
 	'/update-font': (params) => {
 		const pool = fontInstanceStore.get('fontWorkerPool');
-		const subset = 'Thequickfoxjmpvrtlazydg';
-		const glyph = ['b'];
+		const subsetString = prototypoStore.get('uiText') + prototypoStore.get('uiWord');
+		const glyphCanvasUnicode = prototypoStore.get('glyphSelected');
+		const altList = prototypoStore.get('altList');
+		const glyph = altList[glyphCanvasUnicode] || String.fromCharCode(glyphCanvasUnicode);
 		const jobs = [];
 
 		pool.doFastJob({
@@ -822,7 +824,16 @@ export default {
 			},
 		});
 
-		const fontPromise = _.chunk(_.uniq(subset.split('')), Math.ceil(subset.length / pool.workerArray.length))
+		const subset = _.map(
+			_.uniq(subsetString.split('')),
+			(letter) => {
+				const unicode = letter.charCodeAt(0);
+
+				return altList[unicode] || letter;
+			}
+		);
+
+		const fontPromise = _.chunk(subset, Math.ceil(subset.length / pool.workerArray.length))
 			.map((subsubset) => {
 				return new Promise((resolve) => {
 					jobs.push({
@@ -870,7 +881,7 @@ export default {
 			}
 
 			const fontFace = new FontFace(
-				'Prototypo web font',
+				prototypoStore.get('fontName'),
 				arrayBuffer.buffer,
 			);
 
