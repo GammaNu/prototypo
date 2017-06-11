@@ -24,8 +24,6 @@ module.exports = {
 			'react-router',
 			'jszip',
 			'xxhashjs',
-			'pouchdb',
-			'pouchdb-hoodie-api',
 			'slug',
 			'lodash',
 			'diff'

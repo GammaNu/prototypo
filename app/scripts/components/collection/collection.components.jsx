@@ -238,6 +238,9 @@ const deleteFamilyMutation = gql`
 
 export default compose(
 	graphql(libraryQuery, {
+		options: {
+			fetchPolicy: 'network-only',
+		},
 		props: ({data}) => {
 			console.log('Collection libraryQuery', data);
 			if (data.loading) {
