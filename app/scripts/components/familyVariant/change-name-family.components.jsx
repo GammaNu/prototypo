@@ -66,8 +66,8 @@ export default class ChangeNameFamily extends React.Component {
 					<InputWithLabel ref="newName" inputValue={this.props.family.name}/>
 					{error}
 					<div className="action-form-buttons">
-						<Button click={this.exit} label="Cancel" neutral={true}/>
-						<Button click={this.editFamily} label="Change family name"/>
+						<Button click={this.exit} label="Cancel" neutral />
+						<Button click={this.editFamily} label="Change family name" />
 					</div>
 				</div>
 			</Modal>

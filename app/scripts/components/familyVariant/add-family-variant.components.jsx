@@ -1,7 +1,6 @@
 import React from 'react';
 import Classnames from 'classnames';
 import Lifespan from 'lifespan';
-import PureRenderMixin from 'react-addons-pure-render-mixin';
 
 import LocalClient from '~/stores/local-client.stores.jsx';
 import Log from '~/services/log.services.js';
@@ -9,13 +8,16 @@ import Log from '~/services/log.services.js';
 import Button from '../shared/button.components.jsx';
 import SelectWithLabel from '../shared/select-with-label.components.jsx';
 
-export class AddFamily extends React.Component {
+export class AddFamily extends React.PureComponent {
 	constructor(props) {
 		super(props);
+
 		this.state = {
 			fonts: [],
 		};
-		this.shouldComponentUpdate = PureRenderMixin.shouldComponentUpdate.bind(this);
+
+		this.exit = this.exit.bind(this);
+		this.createFont = this.createFont.bind(this);
 	}
 
 	async componentWillMount() {
@@ -118,8 +120,8 @@ export class AddFamily extends React.Component {
 					<input ref="name" className="add-family-form-input" type="text" placeholder="My new typeface"></input>
 					{error}
 					<div className="action-form-buttons">
-						<Button click={(e) => {this.exit(e);} } label="Cancel" neutral={true}/>
-						<Button click={(e) => {this.createFont(e);} } label="Create family"/>
+						<Button click={this.exit} label="Cancel" neutral />
+						<Button click={this.createFont} label="Create family"/>
 					</div>
 				</div>
 			</div>
@@ -147,13 +149,16 @@ export class FamilyTemplateChoice extends React.Component {
 	}
 }
 
-export class AddVariant extends React.Component {
+export class AddVariant extends React.PureComponent {
 	constructor(props) {
 		super(props);
+
 		this.state = {
 			error: undefined,
 		};
-		this.shouldComponentUpdate = PureRenderMixin.shouldComponentUpdate.bind(this);
+
+		this.exit = this.exit.bind(this);
+		this.createVariant = this.createVariant.bind(this);
 	}
 
 	componentWillMount() {
@@ -201,6 +206,7 @@ export class AddVariant extends React.Component {
 		this.client.dispatchAction('/create-variant', {
 			name: this.refs.variantName.inputValue.value,
 			familyName: this.props.family.name,
+			familyId: this.props.family.id,
 		});
 		Log.ui('Collection.createVariant');
 	}
@@ -213,6 +219,7 @@ export class AddVariant extends React.Component {
 	}
 
 	render() {
+		console.log('here the ', this.props.family);
 		return (
 			<div className="variant" ref="container">
 				<SelectWithLabel
@@ -222,8 +229,8 @@ export class AddVariant extends React.Component {
 					options={this.variants}/>
 				<div className="variant-error">{this.state.error}</div>
 				<div className="action-form-buttons">
-					<Button click={(e) => {this.exit(e);} } label="Cancel" neutral={true}/>
-					<Button click={(e) => {this.createVariant(e);} } label="Create variant"/>
+					<Button click={this.exit} label="Cancel" neutral={true}/>
+					<Button click={this.createVariant} label="Create variant"/>
 				</div>
 			</div>
 		);
